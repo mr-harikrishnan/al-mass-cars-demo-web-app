@@ -1,13 +1,11 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { DataContext } from '../../contexts/DataContext';
-import { useToast } from '../../hooks/useToast';
 import { Card } from '../../components/Card';
 import { CustomSelect } from '../../components/CustomSelect';
 import { FiChevronLeft, FiChevronRight, FiCalendar, FiSliders, FiClock, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 
 export const Calendar = () => {
-  const { vehicles, availability, toggleDayAvailability } = useContext(DataContext);
-  const { addToast } = useToast();
+  const { vehicles, availability, bookings } = useContext(DataContext);
 
   const [selectedCarId, setSelectedCarId] = useState('');
   
@@ -37,21 +35,7 @@ export const Calendar = () => {
     });
   };
 
-  const handleCellClick = (dayNum) => {
-    if (!selectedCarId) {
-      addToast("Please select a vehicle first.", "warning");
-      return;
-    }
 
-    const year = currentDate.getFullYear();
-    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
-    const day = dayNum.toString().padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
-
-    // Toggle day override in context
-    toggleDayAvailability(selectedCarId, dateStr);
-    addToast(`Availability updated for ${dateStr}!`, 'success');
-  };
 
   // Generate calendar dates structures
   const year = currentDate.getFullYear();
@@ -72,6 +56,18 @@ export const Calendar = () => {
     const fullMonth = (month + 1).toString().padStart(2, '0');
     const dateStr = `${year}-${fullMonth}-${day}`;
     
+    // Check if there is an active (approved or completed) booking for this vehicle on this date
+    const hasBooking = bookings.some(b => 
+      b.vehicleId === selectedCarId &&
+      (b.status === 'approved' || b.status === 'completed') &&
+      dateStr >= b.pickupDate &&
+      dateStr <= b.returnDate
+    );
+
+    if (hasBooking) {
+      return 'booked';
+    }
+
     // Check overrides
     if (availability[selectedCarId] && availability[selectedCarId][dateStr]) {
       return availability[selectedCarId][dateStr];
@@ -85,12 +81,12 @@ export const Calendar = () => {
   const getCellClass = (status) => {
     switch (status) {
       case 'booked':
-        return 'bg-yellow-950/40 border-yellow-500/20 text-yellow-400 hover:bg-yellow-900/40';
+        return 'bg-yellow-950/40 border-yellow-500/20 text-yellow-400';
       case 'maintenance':
-        return 'bg-red-950/40 border-red-500/20 text-red-400 hover:bg-red-900/40';
+        return 'bg-red-950/40 border-red-500/20 text-red-400';
       case 'available':
       default:
-        return 'bg-emerald-950/30 border-emerald-500/10 text-emerald-400 hover:bg-emerald-900/30';
+        return 'bg-emerald-950/30 border-emerald-500/10 text-emerald-400';
     }
   };
 
@@ -104,7 +100,7 @@ export const Calendar = () => {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 relative z-20">
         <div>
           <h1 className="font-heading text-3xl font-bold text-white">Availability Calendar</h1>
-          <p className="text-xs text-gray-500 mt-1">Select a car and click calendar cells to override availability slots.</p>
+          <p className="text-xs text-gray-500 mt-1">Select a car to view its availability and booking status across dates.</p>
         </div>
 
         {/* Vehicle Picker */}
@@ -154,13 +150,12 @@ export const Calendar = () => {
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded bg-yellow-950 border border-yellow-500/30 shrink-0" />
-            <span className="text-yellow-400">Booked Override</span>
+            <span className="text-yellow-400">Booked / Reserved</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded bg-red-950 border border-red-500/30 shrink-0" />
             <span className="text-red-400">Maintenance</span>
           </div>
-          <span className="text-[10px] text-gray-500 italic ml-auto">(Click a date cell below to cycle its status)</span>
         </div>
 
         {/* Calendar Weeks & Days Grid */}
@@ -186,16 +181,15 @@ export const Calendar = () => {
               const cellStyle = getCellClass(status);
 
               return (
-                <button
+                <div
                   key={dayNum}
-                  onClick={() => handleCellClick(dayNum)}
-                  className={`rounded-xl border p-2 h-16 sm:h-20 flex flex-col justify-between items-start transition-all duration-150 active:scale-95 ${cellStyle}`}
+                  className={`rounded-xl border p-2 h-16 sm:h-20 flex flex-col justify-between items-start ${cellStyle}`}
                 >
                   <span className="text-xs font-bold font-sans">{dayNum}</span>
                   <span className="text-[8px] uppercase tracking-wider font-semibold opacity-75 hidden sm:inline">
                     {status}
                   </span>
-                </button>
+                </div>
               );
             })}
           </div>

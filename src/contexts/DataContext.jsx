@@ -16,6 +16,38 @@ export const DataProvider = ({ children }) => {
     setSettings(getFromStorage(KEYS.SETTINGS, { phone: '', whatsapp: '', location: '' }));
   }, []);
 
+  const isVehicleAvailable = (vehicleId, pickupDate, returnDate, excludeBookingId = null) => {
+    const targetVehicle = vehicles.find(v => v.id === vehicleId);
+    if (!targetVehicle || targetVehicle.availability === 'maintenance') {
+      return false;
+    }
+
+    const hasOverlap = bookings.some(b => {
+      if (excludeBookingId && b.id === excludeBookingId) return false;
+      if (b.status !== 'approved' && b.status !== 'completed') return false;
+      if (b.vehicleId !== vehicleId) return false;
+      return (pickupDate <= b.returnDate) && (returnDate >= b.pickupDate);
+    });
+
+    if (hasOverlap) {
+      return false;
+    }
+
+    const overrides = availability[vehicleId];
+    if (overrides) {
+      const start = new Date(pickupDate + 'T00:00:00');
+      const end = new Date(returnDate + 'T00:00:00');
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        if (overrides[dateStr] === 'booked' || overrides[dateStr] === 'maintenance') {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  };
+
   const addBooking = async (bookingData) => {
     const {
       customerName,
@@ -41,6 +73,10 @@ export const DataProvider = ({ children }) => {
     const targetVehicle = vehicles.find(v => v.id === vehicleId);
     if (!targetVehicle) {
       throw new Error("Invalid vehicle selected");
+    }
+
+    if ((status === 'approved' || status === 'completed') && !isVehicleAvailable(vehicleId, pickupDate, returnDate)) {
+      throw new Error("This vehicle is already booked or unavailable for the selected dates.");
     }
 
     const id = generateBookingId();
@@ -76,6 +112,21 @@ export const DataProvider = ({ children }) => {
   const updateBookingStatus = async (bookingId, status) => {
     if (!bookingId || !status) {
       throw new Error("Booking ID and status are required");
+    }
+
+    if (status === 'approved' || status === 'completed') {
+      const targetBooking = bookings.find(b => b.id === bookingId);
+      if (targetBooking) {
+        const isAvail = isVehicleAvailable(
+          targetBooking.vehicleId,
+          targetBooking.pickupDate,
+          targetBooking.returnDate,
+          bookingId
+        );
+        if (!isAvail) {
+          throw new Error("This vehicle is already booked or unavailable for these dates.");
+        }
+      }
     }
 
     const updatedBookings = bookings.map(b => {
@@ -247,7 +298,8 @@ export const DataProvider = ({ children }) => {
       toggleVehicleAvailability,
       updatePricing,
       toggleDayAvailability,
-      updateSettings
+      updateSettings,
+      isVehicleAvailable
     }}>
       {children}
     </DataContext.Provider>
