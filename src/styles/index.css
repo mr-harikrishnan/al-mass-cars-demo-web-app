@@ -1,0 +1,148 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-charcoal-base: #0A0A0A;
+  --color-charcoal-elevated: #141414;
+  --color-charcoal-light: #1F1F1F;
+  
+  --color-gold: #D4AF37;
+  --color-gold-light: #E9CD6B;
+  --color-gold-dark: #A8860C;
+
+  --font-heading: "Playfair Display", serif;
+  --font-sans: Inter, sans-serif;
+
+  --shadow-gold-glow: 0 0 30px rgba(212, 175, 55, 0.15);
+  --shadow-gold-glow-lg: 0 0 50px rgba(212, 175, 55, 0.3);
+}
+
+@utility glass-card {
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transition-property: all;
+  transition-duration: 300ms;
+}
+
+@utility glass-card-hover {
+  &:hover {
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.15);
+    border-color: rgba(212, 175, 55, 0.3);
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+@utility gold-btn-primary {
+  position: relative;
+  font-weight: 600;
+  color: #000000;
+  background: linear-gradient(to right, #E9CD6B, #D4AF37, #A8860C);
+  border-radius: 0.75rem;
+  padding: 0.625rem 1.25rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition-property: all;
+  transition-duration: 300ms;
+  &:hover {
+    box-shadow: 0 0 50px rgba(212, 175, 55, 0.3);
+    transform: scale(1.02);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+  &:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+@utility gold-btn-secondary {
+  position: relative;
+  font-weight: 600;
+  color: #D4AF37;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  background-color: transparent;
+  border-radius: 0.75rem;
+  padding: 0.625rem 1.25rem;
+  transition-property: all;
+  transition-duration: 300ms;
+  &:hover {
+    border-color: #E9CD6B;
+    background-color: rgba(212, 175, 55, 0.1);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+  &:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+@utility gold-gradient-text {
+  background: linear-gradient(135deg, #E9CD6B 0%, #D4AF37 50%, #A8860C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@utility text-glow {
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+@utility input-field {
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  color: #ffffff;
+  transition-property: all;
+  transition-duration: 200ms;
+  &::placeholder {
+    color: #6b7280;
+  }
+  &:focus {
+    outline: none;
+    border-color: rgba(212, 175, 55, 0.5);
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+body {
+  background-color: #0A0A0A;
+  color: #f3f4f6;
+  font-family: Inter, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Playfair Display", serif;
+  letter-spacing: 0.025em;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0A0A;
+}
+::-webkit-scrollbar-thumb {
+  background: #D4AF37;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #E9CD6B;
+}
+
+/* Hide default calendar icon in custom datepickers */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8) sepia(100%) saturate(1000%) hue-rotate(5deg);
+  cursor: pointer;
+}
