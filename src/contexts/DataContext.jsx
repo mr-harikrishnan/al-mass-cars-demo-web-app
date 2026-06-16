@@ -17,9 +17,24 @@ export const DataProvider = ({ children }) => {
   }, []);
 
   const addBooking = async (bookingData) => {
-    const { customerName, customerEmail, phone, pickupDate, returnDate, pickupTime, vehicleId, location, notes } = bookingData;
+    const {
+      customerName,
+      customerEmail = '',
+      phone,
+      pickupDate,
+      returnDate,
+      pickupTime,
+      vehicleId,
+      location,
+      notes,
+      status = 'pending',
+      bookingSource = 'online',
+      paymentMethod = 'none',
+      paymentStatus = 'pending',
+      drivingLicense = ''
+    } = bookingData;
     
-    if (!customerName || !customerEmail || !phone || !pickupDate || !returnDate || !pickupTime || !vehicleId || !location) {
+    if (!customerName || !phone || !pickupDate || !returnDate || !pickupTime || !vehicleId || !location) {
       throw new Error("Missing required fields for booking request");
     }
 
@@ -44,7 +59,11 @@ export const DataProvider = ({ children }) => {
       vehicleImage: targetVehicle.slug,
       location,
       notes: notes || "",
-      status: 'pending',
+      status,
+      bookingSource,
+      paymentMethod,
+      paymentStatus,
+      drivingLicense,
       created_at: new Date().toISOString()
     };
 

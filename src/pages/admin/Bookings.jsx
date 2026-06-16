@@ -7,10 +7,10 @@ import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { TableSkeleton } from '../../components/Skeleton';
 import { CustomSelect } from '../../components/CustomSelect';
-import { FiSearch, FiSliders, FiClock, FiCheckCircle, FiXCircle, FiTruck, FiInfo, FiMapPin, FiMail, FiPhone } from 'react-icons/fi';
+import { FiSearch, FiSliders, FiClock, FiCheckCircle, FiXCircle, FiTruck, FiInfo, FiMapPin, FiMail, FiPhone, FiCreditCard, FiFileText, FiPlus } from 'react-icons/fi';
 
 export const Bookings = () => {
-  const { bookings, vehicles, updateBookingStatus } = useContext(DataContext);
+  const { bookings, vehicles, updateBookingStatus, addBooking, settings } = useContext(DataContext);
   const { addToast } = useToast();
 
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -22,6 +22,105 @@ export const Bookings = () => {
   // Modal Details state
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+
+  // Walk-in booking form state
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [walkInVehicleId, setWalkInVehicleId] = useState('');
+  const [walkInCustomerName, setWalkInCustomerName] = useState('');
+  const [walkInPhone, setWalkInPhone] = useState('');
+  const [walkInEmail, setWalkInEmail] = useState('');
+  const [walkInDrivingLicense, setWalkInDrivingLicense] = useState('');
+  const [walkInPickupDate, setWalkInPickupDate] = useState('');
+  const [walkInPickupTime, setWalkInPickupTime] = useState('09:00');
+  const [walkInReturnDate, setWalkInReturnDate] = useState('');
+  const [walkInLocation, setWalkInLocation] = useState('');
+  const [walkInStatus, setWalkInStatus] = useState('approved');
+  const [walkInPaymentMethod, setWalkInPaymentMethod] = useState('cash');
+  const [walkInPaymentStatus, setWalkInPaymentStatus] = useState('paid');
+  const [walkInNotes, setWalkInNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  const handleOpenCreateModal = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setWalkInPickupDate(tomorrow.toISOString().split('T')[0]);
+
+    const dayAfter = new Date();
+    dayAfter.setDate(dayAfter.getDate() + 2);
+    setWalkInReturnDate(dayAfter.toISOString().split('T')[0]);
+
+    setWalkInPickupTime('09:00');
+    setWalkInLocation(settings?.location || 'Al-Mas Cars Head Office');
+    
+    const firstAvailable = vehicles.find(v => v.availability === 'available');
+    setWalkInVehicleId(firstAvailable ? firstAvailable.id : (vehicles[0]?.id || ''));
+
+    setWalkInCustomerName('');
+    setWalkInPhone('');
+    setWalkInEmail('');
+    setWalkInDrivingLicense('');
+    setWalkInStatus('approved');
+    setWalkInPaymentMethod('cash');
+    setWalkInPaymentStatus('paid');
+    setWalkInNotes('');
+    setFormError('');
+    
+    setCreateModalOpen(true);
+  };
+
+  const handleCreateSubmit = async (e) => {
+    e.preventDefault();
+    setFormError('');
+    setIsSubmitting(true);
+
+    try {
+      if (!walkInCustomerName || !walkInPhone || !walkInPickupDate || !walkInReturnDate || !walkInPickupTime || !walkInVehicleId || !walkInLocation) {
+        throw new Error("Please fill in all required fields.");
+      }
+
+      const phoneRegex = /^\d{10}$/;
+      if (!phoneRegex.test(walkInPhone)) {
+        throw new Error("Phone number must be exactly 10 digits.");
+      }
+
+      if (walkInEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(walkInEmail)) {
+          throw new Error("Please enter a valid email address.");
+        }
+      }
+
+      if (walkInReturnDate < walkInPickupDate) {
+        throw new Error("Return date must be on or after the pickup date.");
+      }
+
+      await addBooking({
+        customerName: walkInCustomerName,
+        customerEmail: walkInEmail,
+        phone: walkInPhone,
+        pickupDate: walkInPickupDate,
+        returnDate: walkInReturnDate,
+        pickupTime: walkInPickupTime,
+        vehicleId: walkInVehicleId,
+        location: walkInLocation,
+        notes: walkInNotes,
+        status: walkInStatus,
+        bookingSource: 'walk-in',
+        paymentMethod: walkInPaymentMethod,
+        paymentStatus: walkInPaymentStatus,
+        drivingLicense: walkInDrivingLicense
+      });
+
+      addToast("Walk-in booking created successfully!", "success");
+      setCreateModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      setFormError(err.message || "An error occurred while creating booking.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -104,9 +203,19 @@ export const Bookings = () => {
           <p className="text-xs text-gray-500 mt-1">Approve rentals, reject requests, and check customer verification statuses.</p>
         </div>
 
-        <span className="text-xs bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg text-gray-400 self-start md:self-auto font-medium">
-          Showing <strong className="text-gold">{filteredBookings.length}</strong> of {bookings.length} reservations
-        </span>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 self-stretch md:self-auto">
+          <Button
+            variant="primary"
+            onClick={handleOpenCreateModal}
+            className="text-xs font-bold uppercase tracking-wider py-2 px-4 rounded-xl flex items-center gap-1.5 justify-center"
+          >
+            <FiPlus className="w-4 h-4" />
+            <span>Add Walk-in Booking</span>
+          </Button>
+          <span className="text-xs bg-white/5 border border-white/10 px-3 py-2 rounded-lg text-gray-400 font-medium text-center">
+            Showing <strong className="text-gold">{filteredBookings.length}</strong> of {bookings.length} reservations
+          </span>
+        </div>
       </div>
 
       {/* Filter and Search Panel */}
@@ -233,8 +342,19 @@ export const Bookings = () => {
             {/* Status section */}
             <div className="flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-xl">
               <div>
-                <p className="text-[9px] uppercase text-gray-500 font-bold">Current Status</p>
-                <div className="mt-1">{getStatusBadge(selectedBooking.status)}</div>
+                <p className="text-[9px] uppercase text-gray-500 font-bold">Current Status / Type</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  {getStatusBadge(selectedBooking.status)}
+                  {selectedBooking.bookingSource === 'walk-in' ? (
+                    <span className="flex items-center gap-1 w-fit text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-amber-950/80 border border-amber-500/30 text-amber-400">
+                      Walk-In (Direct)
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 w-fit text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-500/30 text-indigo-400">
+                      Online Booking
+                    </span>
+                  )}
+                </div>
               </div>
               <div>
                 <p className="text-[9px] uppercase text-gray-500 font-bold text-right">Request Date</p>
@@ -261,8 +381,14 @@ export const Bookings = () => {
                 </div>
                 <div className="space-y-1 bg-black/20 p-3 rounded-lg border border-white/5 sm:col-span-2">
                   <p className="text-gray-500 font-bold uppercase text-[8px] flex items-center gap-1"><FiMail className="text-gold shrink-0" /> Email Address</p>
-                  <a href={`mailto:${selectedBooking.customerEmail}`} className="text-sm font-semibold text-white hover:text-gold">{selectedBooking.customerEmail}</a>
+                  <a href={`mailto:${selectedBooking.customerEmail}`} className="text-sm font-semibold text-white hover:text-gold">{selectedBooking.customerEmail || 'N/A'}</a>
                 </div>
+                {selectedBooking.drivingLicense && (
+                  <div className="space-y-1 bg-black/20 p-3 rounded-lg border border-white/5 sm:col-span-2">
+                    <p className="text-gray-500 font-bold uppercase text-[8px] flex items-center gap-1"><FiFileText className="text-gold shrink-0" /> Driving License</p>
+                    <p className="text-sm font-semibold text-white uppercase">{selectedBooking.drivingLicense}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -301,6 +427,38 @@ export const Bookings = () => {
                 )}
               </div>
             </div>
+
+            {/* Billing & Source Details */}
+            {(selectedBooking.bookingSource === 'walk-in' || selectedBooking.paymentMethod) && (
+              <div className="flex flex-col gap-3">
+                <h4 className="font-heading text-sm font-semibold text-white tracking-wide border-b border-white/5 pb-1 flex items-center gap-2">
+                  <FiCreditCard className="text-gold" />
+                  <span>Billing & Source Details</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div className="space-y-1 bg-black/20 p-3 rounded-lg border border-white/5">
+                    <p className="text-gray-500 font-bold uppercase text-[8px]">Booking Source</p>
+                    <p className="text-sm font-semibold text-white uppercase">{selectedBooking.bookingSource || 'online'}</p>
+                  </div>
+                  <div className="space-y-1 bg-black/20 p-3 rounded-lg border border-white/5">
+                    <p className="text-gray-500 font-bold uppercase text-[8px]">Payment Method</p>
+                    <p className="text-sm font-semibold text-white uppercase">{selectedBooking.paymentMethod || 'none'}</p>
+                  </div>
+                  <div className="space-y-1 bg-black/20 p-3 rounded-lg border border-white/5 sm:col-span-2">
+                    <p className="text-gray-500 font-bold uppercase text-[8px]">Payment Status</p>
+                    <span className={`inline-block mt-1.5 text-[10px] uppercase font-bold px-2.5 py-0.5 rounded border ${
+                      selectedBooking.paymentStatus === 'paid' 
+                        ? 'bg-emerald-950/80 border-emerald-500/30 text-emerald-400' 
+                        : selectedBooking.paymentStatus === 'advance'
+                        ? 'bg-blue-950/80 border-blue-500/30 text-blue-400'
+                        : 'bg-yellow-950/80 border-yellow-500/30 text-yellow-400'
+                    }`}>
+                      {selectedBooking.paymentStatus || 'pending'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Action buttons footer */}
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
@@ -345,6 +503,203 @@ export const Bookings = () => {
           </div>
         </Modal>
       )}
+
+      {/* Walk-in Booking Creation Modal */}
+      <Modal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Create Walk-In Booking"
+      >
+        {formError && (
+          <div className="mb-4 p-3 text-xs font-medium text-red-200 border border-red-500/20 bg-red-950/30 rounded-xl">
+            {formError}
+          </div>
+        )}
+
+        <form onSubmit={handleCreateSubmit} className="space-y-4" noValidate>
+          {/* Customer Details */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1 text-left">
+              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Customer Name *</label>
+              <input
+                type="text"
+                value={walkInCustomerName}
+                onChange={(e) => setWalkInCustomerName(e.target.value)}
+                className="input-field text-sm bg-black/20"
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1 text-left">
+              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Phone Number *</label>
+              <input
+                type="tel"
+                value={walkInPhone}
+                onChange={(e) => setWalkInPhone(e.target.value)}
+                className="input-field text-sm bg-black/20"
+                placeholder="10 digit number"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1 text-left">
+              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Email Address (Optional)</label>
+              <input
+                type="email"
+                value={walkInEmail}
+                onChange={(e) => setWalkInEmail(e.target.value)}
+                className="input-field text-sm bg-black/20"
+              />
+            </div>
+            <div className="flex flex-col gap-1 text-left">
+              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Driving License (Optional)</label>
+              <input
+                type="text"
+                value={walkInDrivingLicense}
+                onChange={(e) => setWalkInDrivingLicense(e.target.value)}
+                className="input-field text-sm bg-black/20 uppercase"
+                placeholder="e.g. TN-01-20230001234"
+              />
+            </div>
+          </div>
+
+          {/* Rental Details */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1 text-left">
+              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Select Vehicle *</label>
+              <CustomSelect
+                value={walkInVehicleId}
+                onChange={(e) => setWalkInVehicleId(e.target.value)}
+                options={vehicles.map(v => ({
+                  value: v.id,
+                  label: `${v.name} (${v.category}) - ${v.availability === 'available' ? 'Available' : 'Unavailable'}`
+                }))}
+                className="w-full text-sm bg-black/20"
+              />
+            </div>
+            <div className="flex flex-col gap-1 text-left">
+              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Pickup Time *</label>
+              <input
+                type="time"
+                value={walkInPickupTime}
+                onChange={(e) => setWalkInPickupTime(e.target.value)}
+                className="input-field text-sm bg-black/20"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1 text-left">
+              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Pickup Date *</label>
+              <input
+                type="date"
+                value={walkInPickupDate}
+                onChange={(e) => setWalkInPickupDate(e.target.value)}
+                className="input-field text-sm bg-black/20"
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1 text-left">
+              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Return Date *</label>
+              <input
+                type="date"
+                value={walkInReturnDate}
+                onChange={(e) => setWalkInReturnDate(e.target.value)}
+                className="input-field text-sm bg-black/20"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1 text-left">
+            <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Delivery/Pickup Location *</label>
+            <input
+              type="text"
+              value={walkInLocation}
+              onChange={(e) => setWalkInLocation(e.target.value)}
+              className="input-field text-sm bg-black/20"
+              required
+            />
+          </div>
+
+          {/* Admin & Payment Details */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex flex-col gap-1 text-left">
+              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Booking Status</label>
+              <CustomSelect
+                value={walkInStatus}
+                onChange={(e) => setWalkInStatus(e.target.value)}
+                options={[
+                  { value: 'approved', label: 'Approved' },
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'completed', label: 'Completed' }
+                ]}
+                className="w-full text-sm bg-black/20"
+              />
+            </div>
+            <div className="flex flex-col gap-1 text-left">
+              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Payment Method</label>
+              <CustomSelect
+                value={walkInPaymentMethod}
+                onChange={(e) => setWalkInPaymentMethod(e.target.value)}
+                options={[
+                  { value: 'cash', label: 'Cash' },
+                  { value: 'card', label: 'Card' },
+                  { value: 'upi', label: 'UPI / GPay' },
+                  { value: 'bank_transfer', label: 'Bank Transfer' }
+                ]}
+                className="w-full text-sm bg-black/20"
+              />
+            </div>
+            <div className="flex flex-col gap-1 text-left">
+              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Payment Status</label>
+              <CustomSelect
+                value={walkInPaymentStatus}
+                onChange={(e) => setWalkInPaymentStatus(e.target.value)}
+                options={[
+                  { value: 'paid', label: 'Paid' },
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'advance', label: 'Advance Paid' }
+                ]}
+                className="w-full text-sm bg-black/20"
+              />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="flex flex-col gap-1 text-left">
+            <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Staff Notes / Special Remarks</label>
+            <textarea
+              value={walkInNotes}
+              onChange={(e) => setWalkInNotes(e.target.value)}
+              placeholder="e.g. Received cash advance of ₹1000. Customer requested baby seat."
+              rows="2"
+              className="input-field text-sm bg-black/20"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
+            <button
+              type="button"
+              onClick={() => setCreateModalOpen(false)}
+              className="text-xs uppercase font-bold text-gray-400 hover:text-white px-4 py-2"
+            >
+              Cancel
+            </button>
+            <Button
+              type="submit"
+              variant="primary"
+              className="text-xs uppercase font-bold tracking-wider py-2.5 px-6"
+              isLoading={isSubmitting}
+            >
+              <span>Create Booking</span>
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
