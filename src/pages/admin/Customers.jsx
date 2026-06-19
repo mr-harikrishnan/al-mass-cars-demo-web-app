@@ -28,10 +28,12 @@ export const Customers = () => {
   const customersList = users
     .filter(u => u.role === 'user')
     .map(customer => {
-      // Find customer bookings
-      const customerBookings = bookings.filter(
-        b => b.customerEmail.toLowerCase() === customer.email.toLowerCase()
-      );
+      // Find customer bookings (by email or phone number)
+      const customerBookings = bookings.filter(b => {
+        const emailMatch = b.customerEmail && customer.email && b.customerEmail.toLowerCase() === customer.email.toLowerCase();
+        const phoneMatch = b.phone && customer.phone && b.phone === customer.phone;
+        return emailMatch || phoneMatch;
+      });
       
       const lastBooking = customerBookings.reduce((latest, b) => {
         if (!latest) return b;

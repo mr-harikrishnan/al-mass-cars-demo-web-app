@@ -10,8 +10,12 @@ export const UserDashboard = () => {
   const { vehicles, bookings } = useContext(DataContext);
   const { currentUser } = useAuth();
 
-  // Filter user's specific bookings
-  const userBookings = bookings.filter(b => b.customerEmail.toLowerCase() === currentUser?.email?.toLowerCase());
+  // Filter user's specific bookings (by email or phone number)
+  const userBookings = bookings.filter(b => {
+    const emailMatch = b.customerEmail && currentUser?.email && b.customerEmail.toLowerCase() === currentUser.email.toLowerCase();
+    const phoneMatch = b.phone && currentUser?.phone && b.phone === currentUser.phone;
+    return emailMatch || phoneMatch;
+  });
 
   // Stat metrics
   const totalAvailableCars = vehicles.filter(v => v.availability === 'available').length;

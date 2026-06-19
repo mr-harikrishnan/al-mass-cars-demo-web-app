@@ -6,7 +6,27 @@ import { Card } from '../../components/Card';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { TableSkeleton } from '../../components/Skeleton';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiSliders, FiCheck, FiXCircle } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiSliders, FiCheck, FiXCircle, FiChevronDown } from 'react-icons/fi';
+import { CustomSelect } from '../../components/CustomSelect';
+
+const categoryOptions = [
+  { value: 'SUV', label: 'SUV' },
+  { value: 'Sedan', label: 'Sedan' },
+  { value: 'Hatchback', label: 'Hatchback' },
+  { value: 'Compact SUV', label: 'Compact SUV' },
+  { value: 'MUV', label: 'MUV' }
+];
+
+const transmissionOptions = [
+  { value: 'Manual', label: 'Manual' },
+  { value: 'Automatic', label: 'Automatic' }
+];
+
+const fuelOptions = [
+  { value: 'Petrol', label: 'Petrol' },
+  { value: 'Diesel', label: 'Diesel' },
+  { value: 'CNG', label: 'CNG' }
+];
 
 export const Vehicles = () => {
   const { vehicles, addVehicle, updateVehicle, deleteVehicle, toggleVehicleAvailability } = useContext(DataContext);
@@ -26,6 +46,9 @@ export const Vehicles = () => {
   const [mStart, setMStart] = useState('');
   const [mEnd, setMEnd] = useState('');
   const [mError, setMError] = useState('');
+
+  // Dropdown Menu State
+  const [activeDropdownCarId, setActiveDropdownCarId] = useState(null);
 
   // Form Fields State
   const [name, setName] = useState('');
@@ -281,19 +304,65 @@ export const Vehicles = () => {
                     <td className="p-4 font-medium text-white">{formatCurrency(car.price12)}</td>
                     <td className="p-4 font-medium text-gold">{formatCurrency(car.price24)}</td>
                     <td className="p-4">
-                      <button
-                        onClick={() => handleToggleClick(car)}
-                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border transition-all ${
-                          car.availability === 'available'
-                            ? 'bg-emerald-950/80 border-emerald-500/30 text-emerald-400 hover:bg-emerald-900'
-                            : 'bg-red-950/80 border-red-500/30 text-red-400 hover:bg-red-900'
-                        }`}
-                        title="Click to toggle status"
-                      >
-                        {car.availability}
-                      </button>
+                      <div className="relative">
+                        <button
+                          onClick={() => setActiveDropdownCarId(activeDropdownCarId === car.id ? null : car.id)}
+                          className="w-32 bg-white/5 flex items-center justify-between py-1.5 px-3 cursor-pointer text-white border border-white/10 rounded-lg hover:border-gold/40 transition-all duration-200"
+                          title="Click to select availability status"
+                        >
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${car.availability === 'available' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                            <span className="text-xs font-medium capitalize">{car.availability}</span>
+                          </div>
+                          <FiChevronDown className="text-gray-400 w-3 h-3 shrink-0" />
+                        </button>
+
+                        {activeDropdownCarId === car.id && (
+                          <>
+                            {/* Backdrop to dismiss on click outside */}
+                            <div 
+                              className="fixed inset-0 z-40" 
+                              onClick={() => setActiveDropdownCarId(null)}
+                            />
+                            <div className="absolute left-0 mt-2 w-36 rounded-xl bg-charcoal-elevated border border-white/10 shadow-2xl z-50 overflow-hidden text-left py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+                              <button
+                                onClick={() => {
+                                  setActiveDropdownCarId(null);
+                                  if (car.availability !== 'available') {
+                                    if (window.confirm(`End maintenance for ${car.name} and make it available?`)) {
+                                      handleToggle(car.id, 'available')
+                                        .then(() => {
+                                          addToast(`${car.name} is now available.`, 'success');
+                                        })
+                                        .catch(() => {
+                                          addToast("Failed to update availability status.", 'error');
+                                        });
+                                    }
+                                  }
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs font-semibold text-emerald-400 hover:bg-white/5 flex items-center gap-2 cursor-pointer"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                <span>Available</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setActiveDropdownCarId(null);
+                                  if (car.availability !== 'maintenance') {
+                                    handleToggleClick(car);
+                                  }
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs font-semibold text-red-400 hover:bg-white/5 flex items-center gap-2 cursor-pointer"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                                <span>Maintenance</span>
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                       {car.availability === 'maintenance' && car.maintenanceStart && car.maintenanceEnd && (
-                        <p className="text-[9px] text-gray-500 mt-1">
+                        <p className="text-[9px] text-gray-500 mt-1.5 pl-2 font-medium">
                           {car.maintenanceStart} to {car.maintenanceEnd}
                         </p>
                       )}
@@ -352,46 +421,33 @@ export const Vehicles = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
             {/* Category dropdown */}
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5 relative z-30">
               <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Category *</label>
-              <select
+              <CustomSelect
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="input-field text-sm bg-black/20 py-2.5"
-              >
-                <option value="SUV">SUV</option>
-                <option value="Sedan">Sedan</option>
-                <option value="Hatchback">Hatchback</option>
-                <option value="Compact SUV">Compact SUV</option>
-                <option value="MUV">MUV</option>
-              </select>
+                options={categoryOptions}
+              />
             </div>
 
             {/* Transmission dropdown */}
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5 relative z-25">
               <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Transmission *</label>
-              <select
+              <CustomSelect
                 value={transmission}
                 onChange={(e) => setTransmission(e.target.value)}
-                className="input-field text-sm bg-black/20 py-2.5"
-              >
-                <option value="Manual">Manual</option>
-                <option value="Automatic">Automatic</option>
-              </select>
+                options={transmissionOptions}
+              />
             </div>
 
             {/* Fuel dropdown */}
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5 relative z-20">
               <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Fuel Type *</label>
-              <select
+              <CustomSelect
                 value={fuel}
                 onChange={(e) => setFuel(e.target.value)}
-                className="input-field text-sm bg-black/20 py-2.5"
-              >
-                <option value="Petrol">Petrol</option>
-                <option value="Diesel">Diesel</option>
-                <option value="CNG">CNG</option>
-              </select>
+                options={fuelOptions}
+              />
             </div>
           </div>
 

@@ -12,10 +12,12 @@ export const MyBookings = () => {
   const { currentUser } = useAuth();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // Filter this user's bookings
-  const userBookings = bookings.filter(
-    b => b.customerEmail.toLowerCase() === currentUser?.email?.toLowerCase()
-  );
+  // Filter this user's bookings (by email or phone number)
+  const userBookings = bookings.filter(b => {
+    const emailMatch = b.customerEmail && currentUser?.email && b.customerEmail.toLowerCase() === currentUser.email.toLowerCase();
+    const phoneMatch = b.phone && currentUser?.phone && b.phone === currentUser.phone;
+    return emailMatch || phoneMatch;
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => {
