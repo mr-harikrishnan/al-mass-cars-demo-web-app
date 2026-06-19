@@ -20,6 +20,13 @@ export const Vehicles = () => {
   const [modalType, setModalType] = useState('add'); // 'add' | 'edit'
   const [currentCar, setCurrentCar] = useState(null);
 
+  // Maintenance Modal State
+  const [maintenanceModalOpen, setMaintenanceModalOpen] = useState(false);
+  const [maintenanceCar, setMaintenanceCar] = useState(null);
+  const [mStart, setMStart] = useState('');
+  const [mEnd, setMEnd] = useState('');
+  const [mError, setMError] = useState('');
+
   // Form Fields State
   const [name, setName] = useState('');
   const [category, setCategory] = useState('SUV');
@@ -143,13 +150,57 @@ export const Vehicles = () => {
     }
   };
 
-  const handleToggle = async (carId, carName) => {
+  const handleToggle = async (carId, status, start = null, end = null) => {
     try {
-      await toggleVehicleAvailability(carId);
-      addToast(`Availability status toggled for ${carName}.`, 'success');
+      await toggleVehicleAvailability(carId, status, start, end);
     } catch (err) {
       console.error("Failed to toggle status", err);
-      addToast("Failed to toggle vehicle availability status.", 'error');
+      throw err;
+    }
+  };
+
+  const handleToggleClick = (car) => {
+    if (car.availability === 'maintenance') {
+      if (window.confirm(`End maintenance for ${car.name} and make it available?`)) {
+        handleToggle(car.id, 'available')
+          .then(() => {
+            addToast(`${car.name} is now available.`, 'success');
+          })
+          .catch(() => {
+            addToast("Failed to update availability status.", 'error');
+          });
+      }
+    } else {
+      setMaintenanceCar(car);
+      const today = new Date().toISOString().split('T')[0];
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+      setMStart(today);
+      setMEnd(tomorrowStr);
+      setMError('');
+      setMaintenanceModalOpen(true);
+    }
+  };
+
+  const handleMaintenanceSubmit = async (e) => {
+    e.preventDefault();
+    setMError('');
+
+    try {
+      if (!mStart || !mEnd) {
+        throw new Error('Please select start and end dates.');
+      }
+      if (mEnd < mStart) {
+        throw new Error('End date must be on or after start date.');
+      }
+
+      await handleToggle(maintenanceCar.id, 'maintenance', mStart, mEnd);
+      addToast(`${maintenanceCar.name} scheduled for maintenance.`, 'success');
+      setMaintenanceModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      setMError(err.message || 'Failed to update maintenance schedule.');
     }
   };
 
@@ -231,7 +282,7 @@ export const Vehicles = () => {
                     <td className="p-4 font-medium text-gold">{formatCurrency(car.price24)}</td>
                     <td className="p-4">
                       <button
-                        onClick={() => handleToggle(car.id, car.name)}
+                        onClick={() => handleToggleClick(car)}
                         className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border transition-all ${
                           car.availability === 'available'
                             ? 'bg-emerald-950/80 border-emerald-500/30 text-emerald-400 hover:bg-emerald-900'
@@ -241,6 +292,11 @@ export const Vehicles = () => {
                       >
                         {car.availability}
                       </button>
+                      {car.availability === 'maintenance' && car.maintenanceStart && car.maintenanceEnd && (
+                        <p className="text-[9px] text-gray-500 mt-1">
+                          {car.maintenanceStart} to {car.maintenanceEnd}
+                        </p>
+                      )}
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-3 text-gray-400">
@@ -421,6 +477,65 @@ export const Vehicles = () => {
             >
               <span>{modalType === 'add' ? 'Add Vehicle' : 'Save Details'}</span>
               <FiCheck />
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Maintenance Scheduling Modal */}
+      <Modal
+        isOpen={maintenanceModalOpen}
+        onClose={() => setMaintenanceModalOpen(false)}
+        title={`Schedule Maintenance: ${maintenanceCar?.name}`}
+      >
+        {mError && (
+          <div className="mb-4 p-3 text-xs font-medium text-red-200 border border-red-500/20 bg-red-950/30 rounded-xl">
+            {mError}
+          </div>
+        )}
+
+        <form onSubmit={handleMaintenanceSubmit} className="space-y-4" noValidate>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1 text-left">
+              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Start Date *</label>
+              <input
+                type="date"
+                value={mStart}
+                onChange={(e) => setMStart(e.target.value)}
+                className="input-field text-sm bg-black/20"
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1 text-left">
+              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">End Date *</label>
+              <input
+                type="date"
+                value={mEnd}
+                onChange={(e) => setMEnd(e.target.value)}
+                className="input-field text-sm bg-black/20"
+                required
+              />
+            </div>
+          </div>
+
+          <p className="text-[11px] text-gray-500 italic">
+            The vehicle will be blocked from bookings only during this scheduled maintenance date window. Outside of this window, it will remain available.
+          </p>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
+            <button
+              type="button"
+              onClick={() => setMaintenanceModalOpen(false)}
+              className="text-xs uppercase font-bold text-gray-400 hover:text-white px-4 py-2"
+            >
+              Cancel
+            </button>
+            <Button
+              type="submit"
+              variant="primary"
+              className="text-xs uppercase font-bold tracking-wider py-2.5 px-6"
+            >
+              <span>Schedule Maintenance</span>
             </Button>
           </div>
         </form>

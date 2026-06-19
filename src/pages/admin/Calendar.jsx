@@ -73,9 +73,18 @@ export const Calendar = () => {
       return availability[selectedCarId][dateStr];
     }
 
-    // Default to vehicle state
+    // Default to vehicle state (maintenance check)
     const car = vehicles.find(v => v.id === selectedCarId);
-    return car ? car.availability : 'available';
+    if (car && car.availability === 'maintenance') {
+      if (car.maintenanceStart && car.maintenanceEnd) {
+        if (dateStr >= car.maintenanceStart && dateStr <= car.maintenanceEnd) {
+          return 'maintenance';
+        }
+      } else {
+        return 'maintenance';
+      }
+    }
+    return 'available';
   };
 
   const getCellClass = (status) => {

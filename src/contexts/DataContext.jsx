@@ -18,8 +18,19 @@ export const DataProvider = ({ children }) => {
 
   const isVehicleAvailable = (vehicleId, pickupDate, returnDate, excludeBookingId = null) => {
     const targetVehicle = vehicles.find(v => v.id === vehicleId);
-    if (!targetVehicle || targetVehicle.availability === 'maintenance') {
+    if (!targetVehicle) {
       return false;
+    }
+
+    if (targetVehicle.availability === 'maintenance') {
+      if (targetVehicle.maintenanceStart && targetVehicle.maintenanceEnd) {
+        const overlapsMaintenance = (pickupDate <= targetVehicle.maintenanceEnd) && (returnDate >= targetVehicle.maintenanceStart);
+        if (overlapsMaintenance) {
+          return false;
+        }
+      } else {
+        return false;
+      }
     }
 
     const hasOverlap = bookings.some(b => {
@@ -204,15 +215,28 @@ export const DataProvider = ({ children }) => {
     setToStorage(KEYS.VEHICLES, updatedVehicles);
   };
 
-  const toggleVehicleAvailability = async (id) => {
+  const toggleVehicleAvailability = async (id, status, maintenanceStart = null, maintenanceEnd = null) => {
     if (!id) {
-      throw new Error("Vehicle ID is required to toggle availability");
+      throw new Error("Vehicle ID is required to update availability");
     }
 
     const updatedVehicles = vehicles.map(v => {
       if (v.id === id) {
-        const nextStatus = v.availability === 'available' ? 'maintenance' : 'available';
-        return { ...v, availability: nextStatus };
+        if (status === 'maintenance') {
+          return { 
+            ...v, 
+            availability: 'maintenance',
+            maintenanceStart,
+            maintenanceEnd
+          };
+        } else {
+          return { 
+            ...v, 
+            availability: 'available',
+            maintenanceStart: null,
+            maintenanceEnd: null
+          };
+        }
       }
       return v;
     });
