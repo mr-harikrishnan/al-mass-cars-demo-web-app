@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { DataContext } from '../../contexts/DataContext';
-import { getFromStorage, KEYS } from '../../utils/storage';
+import { AuthContext } from '../../contexts/AuthContext';
 import { formatCurrency } from '../../utils/formatters';
 import { Card } from '../../components/Card';
 import {
@@ -22,7 +22,7 @@ import { TbCurrencyRupee } from 'react-icons/tb';
 
 export const AdminDashboard = () => {
   const { vehicles, bookings } = useContext(DataContext);
-  const users = getFromStorage(KEYS.USERS, []);
+  const { users } = useContext(AuthContext);
 
   // Filter customers (role === 'user')
   const totalCustomers = users.filter(u => u.role === 'user').length;

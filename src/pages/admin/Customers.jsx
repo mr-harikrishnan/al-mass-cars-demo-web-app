@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { DataContext } from '../../contexts/DataContext';
-import { getFromStorage, KEYS } from '../../utils/storage';
+import { AuthContext } from '../../contexts/AuthContext';
 import { formatDate } from '../../utils/formatters';
 import { Card } from '../../components/Card';
 import { Modal } from '../../components/Modal';
@@ -9,6 +9,7 @@ import { FiSearch, FiClock, FiCheckSquare, FiXCircle, FiTruck, FiInfo, FiUser, F
 
 export const Customers = () => {
   const { bookings } = useContext(DataContext);
+  const { users } = useContext(AuthContext);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [search, setSearch] = useState('');
   
@@ -22,8 +23,6 @@ export const Customers = () => {
     }, 500);
     return () => clearTimeout(timer);
   }, []);
-
-  const users = getFromStorage(KEYS.USERS, []);
   
   // Filter customers (role === 'user')
   const customersList = users

@@ -1,14 +1,7 @@
-import { initialUsers } from '../data/users';
-import { initialVehicles } from '../data/vehicles';
-import { staticContent } from '../data/content';
-
 export const KEYS = {
   SESSION: 'almas_session',
-  USERS: 'almas_users',
-  VEHICLES: 'almas_vehicles',
   BOOKINGS: 'almas_bookings',
-  AVAILABILITY: 'almas_availability',
-  SETTINGS: 'almas_settings'
+  AVAILABILITY: 'almas_availability'
 };
 
 export const getFromStorage = (key, fallback = null) => {
@@ -30,28 +23,12 @@ export const setToStorage = (key, value) => {
 };
 
 export const seedInitialData = () => {
-  if (!localStorage.getItem(KEYS.USERS)) {
-    setToStorage(KEYS.USERS, initialUsers);
-  }
-  
-  if (!localStorage.getItem(KEYS.VEHICLES)) {
-    setToStorage(KEYS.VEHICLES, initialVehicles);
-  }
-  
   if (!localStorage.getItem(KEYS.BOOKINGS)) {
     setToStorage(KEYS.BOOKINGS, []);
   }
 
   if (!localStorage.getItem(KEYS.AVAILABILITY)) {
     setToStorage(KEYS.AVAILABILITY, {});
-  }
-
-  if (!localStorage.getItem(KEYS.SETTINGS)) {
-    setToStorage(KEYS.SETTINGS, {
-      phone: staticContent.about.phone,
-      whatsapp: staticContent.about.whatsapp,
-      location: staticContent.about.location
-    });
   }
 };
 
@@ -65,8 +42,7 @@ export const generateBookingId = () => {
   return `ALM${lastIdNum + 1}`;
 };
 
-export const generateVehicleId = () => {
-  const vehicles = getFromStorage(KEYS.VEHICLES, initialVehicles);
+export const generateVehicleId = (vehicles = []) => {
   const lastIdNum = vehicles.reduce((max, v) => {
     if (!v.id || !v.id.startsWith("v")) return max;
     const num = parseInt(v.id.replace('v', ''), 10);

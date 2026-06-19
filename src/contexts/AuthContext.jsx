@@ -1,10 +1,12 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { getFromStorage, setToStorage, KEYS } from '../utils/storage';
+import { initialUsers } from '../data/users';
 
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
+  const [users, setUsers] = useState(initialUsers);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,7 +20,6 @@ export const AuthProvider = ({ children }) => {
       throw new Error("Email and Password are required");
     }
     
-    const users = getFromStorage(KEYS.USERS, []);
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     
     if (!user || user.password !== password) {
@@ -58,7 +59,6 @@ export const AuthProvider = ({ children }) => {
       throw new Error("Please enter a valid email address");
     }
 
-    const users = getFromStorage(KEYS.USERS, []);
     const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (existing) {
       throw new Error("This email is already registered");
@@ -74,8 +74,7 @@ export const AuthProvider = ({ children }) => {
       created_at: new Date().toISOString()
     };
 
-    users.push(newUser);
-    setToStorage(KEYS.USERS, users);
+    setUsers(prevUsers => [...prevUsers, newUser]);
 
     const session = {
       id: newUser.id,
@@ -105,8 +104,6 @@ export const AuthProvider = ({ children }) => {
     if (!name || !phone || !email) {
       throw new Error("Name, Phone, and Email are required");
     }
-
-    const users = getFromStorage(KEYS.USERS, []);
     
     const emailConflict = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.id !== currentUser.id);
     if (emailConflict) {
@@ -118,13 +115,16 @@ export const AuthProvider = ({ children }) => {
       throw new Error("User record not found");
     }
 
-    users[userIndex] = {
-      ...users[userIndex],
-      name,
-      phone,
-      email
-    };
-    setToStorage(KEYS.USERS, users);
+    setUsers(prevUsers => {
+      const copy = [...prevUsers];
+      copy[userIndex] = {
+        ...copy[userIndex],
+        name,
+        phone,
+        email
+      };
+      return copy;
+    });
 
     const updatedSession = {
       ...currentUser,
@@ -139,7 +139,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, loading, login, signup, logout, updateProfile }}>
+    <AuthContext.Provider value={{ currentUser, loading, login, signup, logout, updateProfile, users }}>
       {children}
     </AuthContext.Provider>
   );

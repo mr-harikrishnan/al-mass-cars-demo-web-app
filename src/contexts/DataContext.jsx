@@ -1,19 +1,23 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { getFromStorage, setToStorage, KEYS, generateBookingId, generateVehicleId } from '../utils/storage';
+import { initialVehicles } from '../data/vehicles';
+import { staticContent } from '../data/content';
 
 export const DataContext = createContext(null);
 
 export const DataProvider = ({ children }) => {
-  const [vehicles, setVehicles] = useState([]);
+  const [vehicles, setVehicles] = useState(initialVehicles);
   const [bookings, setBookings] = useState([]);
   const [availability, setAvailability] = useState({});
-  const [settings, setSettings] = useState({ phone: '', whatsapp: '', location: '' });
+  const [settings, setSettings] = useState({
+    phone: staticContent.about.phone,
+    whatsapp: staticContent.about.whatsapp,
+    location: staticContent.about.location
+  });
 
   useEffect(() => {
-    setVehicles(getFromStorage(KEYS.VEHICLES, []));
     setBookings(getFromStorage(KEYS.BOOKINGS, []));
     setAvailability(getFromStorage(KEYS.AVAILABILITY, {}));
-    setSettings(getFromStorage(KEYS.SETTINGS, { phone: '', whatsapp: '', location: '' }));
   }, []);
 
   const isVehicleAvailable = (vehicleId, pickupDate, returnDate, excludeBookingId = null) => {
@@ -160,7 +164,7 @@ export const DataProvider = ({ children }) => {
 
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     const newVehicle = {
-      id: generateVehicleId(),
+      id: generateVehicleId(vehicles),
       slug,
       name,
       category,
@@ -176,7 +180,6 @@ export const DataProvider = ({ children }) => {
 
     const updatedVehicles = [...vehicles, newVehicle];
     setVehicles(updatedVehicles);
-    setToStorage(KEYS.VEHICLES, updatedVehicles);
     return newVehicle;
   };
 
@@ -202,7 +205,6 @@ export const DataProvider = ({ children }) => {
     });
 
     setVehicles(updatedVehicles);
-    setToStorage(KEYS.VEHICLES, updatedVehicles);
   };
 
   const deleteVehicle = async (id) => {
@@ -212,7 +214,6 @@ export const DataProvider = ({ children }) => {
 
     const updatedVehicles = vehicles.filter(v => v.id !== id);
     setVehicles(updatedVehicles);
-    setToStorage(KEYS.VEHICLES, updatedVehicles);
   };
 
   const toggleVehicleAvailability = async (id, status, maintenanceStart = null, maintenanceEnd = null) => {
@@ -242,7 +243,6 @@ export const DataProvider = ({ children }) => {
     });
 
     setVehicles(updatedVehicles);
-    setToStorage(KEYS.VEHICLES, updatedVehicles);
   };
 
   const updatePricing = async (vehicleId, price12, price24, extraKm) => {
@@ -263,7 +263,6 @@ export const DataProvider = ({ children }) => {
     });
 
     setVehicles(updatedVehicles);
-    setToStorage(KEYS.VEHICLES, updatedVehicles);
   };
 
   const toggleDayAvailability = async (vehicleId, dateStr) => {
@@ -305,7 +304,6 @@ export const DataProvider = ({ children }) => {
     }
 
     setSettings(newSettings);
-    setToStorage(KEYS.SETTINGS, newSettings);
   };
 
   return (
